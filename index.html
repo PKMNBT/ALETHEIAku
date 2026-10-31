@@ -311,7 +311,7 @@ init();
  }
  function applyClearMarker(t){t=Number(t||0);if(t>localClearAt()){clearAt=Math.max(clearAt,t);localStorage.setItem(CLEAR_KEY,String(t));localStorage.removeItem(LOCAL_KEY);writeLocal({})}}
  let pendingData=null;
- async async function push(data){
+ async function push(data){
   if(!uid||!db)return;
   pendingData=data&&typeof data==="object"?JSON.parse(JSON.stringify(data)):{};
   if(busy)return;
