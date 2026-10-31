@@ -196,13 +196,12 @@ init();
 (function(){
  const cfg={apiKey:"AIzaSyBeCkSRgVRbX1XiC9kJeNSP1PMiu-mLWg",authDomain:"alethiaaku.firebaseapp.com",projectId:"alethiaaku",storageBucket:"alethiaaku.firebasestorage.app",messagingSenderId:"631545180770",appId:"1:631545180770:web:6cab501256bf3cdfee173b"};
  const LOCAL_KEY="alethiaResultsFinal";
- let db=null,uid=null,stop=null,ready=false,writing=false;
+ let db=null,uid=null,stop=null,ready=false;
  const read=()=>{try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")}catch(e){return {}}};
  const writeLocal=data=>{localStorage.setItem(LOCAL_KEY,JSON.stringify(data));if(typeof renderCalendar==="function"){renderCalendar();updateDashboard();if(typeof renderHistory==="function"&&document.getElementById("history")&&!document.getElementById("history").hidden)renderHistory()}};
  const ref=()=>db.collection("sharedData").doc("aletheia").collection("results");
  async function push(data){
-  if(!ready||!uid)return;
-  writing=true;
+  if(!uid||!db)return;
   try{
    const entries=Object.entries(data);
    for(let i=0;i<entries.length;i+=450){
@@ -211,11 +210,10 @@ init();
     await batch.commit();
    }
   }catch(e){console.error("ALETHEIAku cloud save:",e)}
-  finally{writing=false}
  }
  async function start(){
   try{
-   if(!window.firebase)return;
+   if(!window.firebase)throw new Error("Firebase SDK tidak termuat");
    const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
    const auth=app.auth();db=app.firestore();
    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -228,11 +226,11 @@ init();
    Object.entries(local).forEach(([day,value])=>{
     if(!merged[day]||Number(value.best||0)>Number(merged[day].best||0))merged[day]=value;
    });
+   ready=true;
    await push(merged);
-   writeLocal(merged);ready=true;
+   writeLocal(merged);
    if(stop)stop();
    stop=ref().onSnapshot(snap=>{
-    if(writing)return;
     const latest={};snap.forEach(doc=>latest[doc.id]=doc.data());
     writeLocal(latest);
    },err=>console.error("ALETHEIAku cloud listener:",err));
