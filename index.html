@@ -295,9 +295,23 @@ init();
  const writeLocal=data=>{localStorage.setItem(LOCAL_KEY,JSON.stringify(data));if(typeof renderCalendar==="function"){renderCalendar();updateDashboard();if(typeof renderHistory==="function"&&document.getElementById("history")&&!document.getElementById("history").hidden)renderHistory()}};
  const resultsRef=()=>db.collection("sharedData").doc("aletheia").collection("results");
  const metaRef=()=>resultsRef().doc("_state");
+ function mergeRecord(local,remote){
+  if(!local)return remote;
+  if(!remote)return local;
+  const stamp=value=>Date.parse((value&&value.latestReview&&value.latestReview.completedAt)||(value&&value.updatedAt)||"")||0;
+  const newest=stamp(local)>stamp(remote)?local:remote;
+  const higherBest=Number(local.best||0)>Number(remote.best||0)?local:remote;
+  return {
+   ...local,...remote,...newest,
+   best:Math.max(Number(local.best||0),Number(remote.best||0)),
+   stars:Math.max(Number(local.stars||0),Number(remote.stars||0)),
+   latestReview:newest.latestReview||local.latestReview||remote.latestReview||null,
+   bestReview:higherBest.bestReview||local.bestReview||remote.bestReview||null
+  };
+ }
  function applyClearMarker(t){t=Number(t||0);if(t>localClearAt()){clearAt=Math.max(clearAt,t);localStorage.setItem(CLEAR_KEY,String(t));localStorage.removeItem(LOCAL_KEY);writeLocal({})}}
  let pendingData=null;
- async function push(data){
+ async async function push(data){
   if(!uid||!db)return;
   pendingData=data&&typeof data==="object"?JSON.parse(JSON.stringify(data)):{};
   if(busy)return;
@@ -340,7 +354,7 @@ init();
    clearAt=Math.max(clearAt,remoteClear,localClearAt());
    const snap=await resultsRef().get(),cloud={};snap.forEach(doc=>{if(doc.id!=="_state")cloud[doc.id]=doc.data()});
    const merged={...cloud};
-   Object.entries(read()).forEach(([day,value])=>{if(!merged[day]||Number(value.best||0)>Number(merged[day].best||0))merged[day]=value});
+   Object.entries(read()).forEach(([day,value])=>{merged[day]=mergeRecord(value,merged[day])});
    writeLocal(merged);ready=true;
    if(stopMeta)stopMeta();if(stopResults)stopResults();
    stopMeta=metaRef().onSnapshot(doc=>{const t=Number((doc.exists&&doc.data().clearAt)||0);if(t>localClearAt()){applyClearMarker(t);status("☁️ Riwayat dibersihkan dari perangkat lain")}},err=>{console.error("ALETHEIAku meta listener:",err);status("⚠️ Pemantau sinkronisasi: "+(err.code||err.message))});
@@ -348,7 +362,7 @@ init();
     const latest={};snap2.forEach(doc=>{if(doc.id!=="_state")latest[doc.id]=doc.data()});
     if(clearAt>localClearAt())applyClearMarker(clearAt);
     const combined={...latest};
-    Object.entries(read()).forEach(([day,value])=>{if(!combined[day]||Number(value.best||0)>Number(combined[day].best||0))combined[day]=value});
+    Object.entries(read()).forEach(([day,value])=>{combined[day]=mergeRecord(value,combined[day])});
     writeLocal(combined);status("☁️ Terhubung • sinkronisasi aktif");
    },err=>{console.error("ALETHEIAku cloud listener:",err);status("⚠️ Sinkronisasi terputus: "+(err.code||err.message))});
    await push(merged);
