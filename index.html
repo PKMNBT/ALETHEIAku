@@ -225,15 +225,30 @@ init();
 <script>
 (function(){
  const cfg={apiKey:"AIzaSyBeCkSRgVRbX1XiC9kJeNSP1PMiu-mLWg",authDomain:"alethiaaku.firebaseapp.com",projectId:"alethiaaku",storageBucket:"alethiaaku.firebasestorage.app",messagingSenderId:"631545180770",appId:"1:631545180770:web:6cab501256bf3cdfee173b"};
- const state={uid:null,db:null,auth:null,profile:null};
+ const state={uid:null,db:null,auth:null,profile:null,unsubResults:null,unsubKids:null,unsubKidResults:{}};
  const el=id=>document.getElementById(id);
  const say=t=>{if(el('authMessage'))el('authMessage').textContent=t};
  const esc=v=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const code=()=>{const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s};
  async function syncIn(){
   const ref=state.db.collection('users').doc(state.uid).collection('results');
-  const snap=await ref.get(),cloud={};snap.forEach(d=>cloud[d.id]=d.data());
+  const snap=await ref.get(),cloud={};
+  snap.forEach(d=>cloud[d.id]=d.data());
+  const local=JSON.parse(localStorage.getItem('alethiaResultsFinal')||'{}');
+  const batch=state.db.batch();let changed=false;
+  Object.entries(local).forEach(([day,v])=>{
+   if(!cloud[day]||Number(v.best||0)>Number(cloud[day].best||0)){
+    cloud[day]=v;batch.set(ref.doc(day),v,{merge:true});changed=true;
+   }
+  });
+  if(changed)await batch.commit();
   localStorage.setItem('alethiaResultsFinal',JSON.stringify(cloud));
+  if(state.unsubResults)state.unsubResults();
+  state.unsubResults=ref.onSnapshot(live=>{
+   const latest={};live.forEach(d=>latest[d.id]=d.data());
+   localStorage.setItem('alethiaResultsFinal',JSON.stringify(latest));
+   if(typeof renderCalendar==='function'){renderCalendar();updateDashboard();if(typeof renderHistory==='function')renderHistory()}
+  },e=>say('Sinkronisasi nilai terhenti: '+e.message));
   if(typeof renderCalendar==='function'){renderCalendar();updateDashboard()}
  }
  async function saveResults(r){
@@ -250,17 +265,39 @@ init();
  async function parentDashboard(){
   if(!state.profile||state.profile.role!=='parent')return;
   el('familyCodeDisplay').textContent='Kode keluarga anak: '+state.profile.familyId+' — bagikan secara pribadi kepada anak.';
-  const kids=await state.db.collection('users').where('parentUid','==',state.uid).get(),box=el('parentChildren');box.innerHTML='';
-  if(kids.empty){box.innerHTML='<p class="small">Belum ada anak terhubung. Daftarkan akun anak memakai kode keluarga di atas.</p>';return}
-  for(const kid of kids.docs){
-   const p=kid.data(),snap=await state.db.collection('users').doc(kid.id).collection('results').get(),vals=snap.docs.map(d=>d.data());
-   const best=vals.length?Math.max(...vals.map(v=>Number(v.best||0))):0,avg=vals.length?Math.round(vals.reduce((a,v)=>a+Number(v.best||0),0)/vals.length):0;
-   const card=document.createElement('div');card.className='child-card';
-   card.innerHTML='<b>'+esc(p.displayName||'Anak')+'</b><p class="small">'+vals.length+' hari belajar</p><div>Nilai tertinggi: <b>'+best+'</b></div><div>Rata-rata: <b>'+avg+'</b></div>';
-   const recent=snap.docs.sort((a,b)=>b.id.localeCompare(a.id)).slice(0,7);
-   if(recent.length){const list=document.createElement('div');list.style.marginTop='8px';list.innerHTML='<b class="small">Riwayat terbaru</b>'+recent.map(d=>'<div class="small">'+esc(d.id)+' — '+Number(d.data().best||0)+'/100</div>').join('');card.append(list)}
-   box.append(card);
-  }
+  const box=el('parentChildren');
+  if(state.unsubKids)state.unsubKids();
+  Object.values(state.unsubKidResults).forEach(fn=>fn());state.unsubKidResults={};
+  const childData={};
+  const render=()=>{
+   box.innerHTML='';
+   const kids=Object.entries(childData);
+   if(!kids.length){box.innerHTML='<p class="small">Belum ada anak terhubung. Daftarkan akun anak memakai kode keluarga di atas.</p>';return}
+   kids.forEach(([uid,item])=>{
+    const vals=Object.values(item.results||{}),best=vals.length?Math.max(...vals.map(v=>Number(v.best||0))):0,avg=vals.length?Math.round(vals.reduce((a,v)=>a+Number(v.best||0),0)/vals.length):0;
+    const card=document.createElement('div');card.className='child-card';
+    card.innerHTML='<b>'+esc(item.profile.displayName||'Anak')+'</b><p class="small">'+vals.length+' hari belajar</p><div>Nilai tertinggi: <b>'+best+'</b></div><div>Rata-rata: <b>'+avg+'</b></div>';
+    const recent=Object.entries(item.results||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,7);
+    if(recent.length){const list=document.createElement('div');list.style.marginTop='8px';list.innerHTML='<b class="small">Riwayat terbaru</b>'+recent.map(([day,v])=>'<div class="small">'+esc(day)+' — '+Number(v.best||0)+'/100</div>').join('');card.append(list)}
+    box.append(card);
+   });
+  };
+  state.unsubKids=state.db.collection('users').where('parentUid','==',state.uid).onSnapshot(kids=>{
+   const alive=new Set();
+   kids.forEach(kid=>{
+    alive.add(kid.id);
+    if(!childData[kid.id])childData[kid.id]={profile:kid.data(),results:{}};
+    childData[kid.id].profile=kid.data();
+    if(!state.unsubKidResults[kid.id]){
+     state.unsubKidResults[kid.id]=state.db.collection('users').doc(kid.id).collection('results').onSnapshot(rs=>{
+      const values={};rs.forEach(d=>values[d.id]=d.data());
+      childData[kid.id].results=values;render();
+     },e=>say('Tidak dapat memuat riwayat anak: '+e.message));
+    }
+   });
+   Object.keys(childData).forEach(id=>{if(!alive.has(id)){delete childData[id];if(state.unsubKidResults[id]){state.unsubKidResults[id]();delete state.unsubKidResults[id]}}});
+   render();
+  },e=>{box.innerHTML='<p class="small">Gagal memuat daftar anak: '+esc(e.message)+'</p>'});
  }
  async function register(){
   const name=el('authName').value.trim(),role=el('authRole').value,email=el('authEmail').value.trim(),pass=el('authPassword').value,fc=el('familyCode').value.trim().toUpperCase();
@@ -283,11 +320,11 @@ init();
  async function login(){try{say('Sedang masuk...');await state.auth.signInWithEmailAndPassword(el('authEmail').value.trim(),el('authPassword').value)}catch(e){say('Gagal masuk: '+(e.message||e.code))}}
  async function authChanged(user){
   const gate=el('authGate'),main=el('appMain'),bar=el('accountBar'),parent=el('parentPanel');
-  if(!user){state.uid=null;state.profile=null;localStorage.removeItem('alethiaResultsFinal');gate.style.display='block';main.style.display='none';bar.style.display='none';parent.style.display='none';return}
+  if(!user){if(state.unsubResults){state.unsubResults();state.unsubResults=null}if(state.unsubKids){state.unsubKids();state.unsubKids=null}Object.values(state.unsubKidResults).forEach(fn=>fn());state.unsubKidResults={};state.uid=null;state.profile=null;localStorage.removeItem('alethiaResultsFinal');gate.style.display='block';main.style.display='none';bar.style.display='none';parent.style.display='none';return}
   try{
    state.uid=user.uid;const p=await state.db.collection('users').doc(user.uid).get();
-   if(!p.exists){say('Profil tidak ditemukan. Hubungi orang tua atau buat ulang akun.');await state.auth.signOut();return}
-   state.profile=p.data();gate.style.display='none';main.style.display='block';bar.style.display='flex';
+   if(!p.exists){await new Promise(resolve=>setTimeout(resolve,900));const retry=await state.db.collection('users').doc(user.uid).get();if(!retry.exists){say('Profil akun belum tersedia. Coba masuk kembali beberapa saat lagi.');await state.auth.signOut();return}state.profile=retry.data()}else state.profile=p.data();
+   gate.style.display='none';main.style.display='block';bar.style.display='flex';
    el('accountLabel').textContent=(state.profile.role==='parent'?'Orang tua: ':'Halo, ')+(state.profile.displayName||user.email);
    el('logoutBtn').onclick=()=>state.auth.signOut();
    if(state.profile.role==='parent'){parent.style.display='block';el('refreshParent').onclick=()=>parentDashboard();await parentDashboard()}else parent.style.display='none';
