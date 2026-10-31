@@ -30,7 +30,10 @@ main{max-width:1120px;margin:20px auto;padding:0 15px}.ticker{overflow:hidden;wh
 .iphone17-island{position:absolute;z-index:5;top:10px;left:50%;transform:translateX(-50%);width:118px;height:34px;border-radius:22px;background:#08090b;box-shadow:0 1px 1px #555}
 #livePhonePreview{width:100%;height:100%;border:0;display:block;background:#effaf7}
 @media(max-width:460px){.iphone17-frame{height:min(680px,175vw);width:min(320px,94vw);border-radius:44px;padding:7px}.iphone17-screen{border-radius:37px}.iphone17-island{top:7px;width:100px;height:28px}}
-</style></head><body>
+</style><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+</head><body>
 <header><div class="brand">🌿 ALETHEIAku APP<small>TEMAN PINTAR ANAK INDONESIA</small></div><div class="class">📚 KELAS 4 SD</div></header>
 <main>
 <section class="panel" id="mobilePreview" style="margin-bottom:14px">
@@ -66,7 +69,7 @@ const $=id=>document.getElementById(id);
 function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function today(){let d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
 function getResults(){try{return JSON.parse(localStorage.getItem('alethiaResultsFinal')||'{}')}catch(e){return {}}}
-function saveResults(r){localStorage.setItem('alethiaResultsFinal',JSON.stringify(r))}
+function saveResults(r){localStorage.setItem('alethiaResultsFinal',JSON.stringify(r));if(window.ALETHEIA_CLOUD_SYNC)window.ALETHEIA_CLOUD_SYNC.save(r)}
 function shuffle(a,seed){a=a.slice();for(let i=a.length-1;i>0;i--){seed=(seed*1664525+1013904223)>>>0;let j=seed%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function seed(d){return Number(key(d).replaceAll('-',''))}
 function makeQs(d){
@@ -115,7 +118,7 @@ function renderCalendar(){let [y,mo]=$('month').value.split('-').map(Number),fir
 function updateDashboard(){let vals=Object.values(getResults()),scores=vals.map(x=>x.best);$('daysDone').textContent=vals.length;$('bestScore').textContent=scores.length?Math.max(...scores):'—';$('stars').textContent=vals.reduce((a,x)=>a+(x.stars||0),0)+' ⭐';$('average').textContent=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):'—';let d=$('dashboard');if(!scores.length){d.innerHTML='<p class="small">Belum ada hasil. Yuk mulai quiz pertamamu!</p>';return}let avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length),best=Math.max(...scores);d.innerHTML=`<div class="dashrow"><div><span class="small">Rata-rata nilai terbaik</span><h2 style="font-size:30px;margin:2px 0">${avg}/100</h2></div><div><span class="small">Nilai tertinggi</span><h2 style="font-size:30px;margin:2px 0;color:#b18413">${best}</h2></div></div><div class="progress"><i style="width:${avg}%"></i></div><p class="small">Kamu sudah menyelesaikan ${vals.length} tanggal belajar. Terus semangat! 🌱</p>`}
 function toggleHistory(){let h=$('history');h.hidden=!h.hidden;if(!h.hidden){renderHistory()}}
 function renderHistory(){let h=$('history'),r=getResults(),entries=Object.entries(r).sort((a,b)=>b[0].localeCompare(a[0]));h.innerHTML='<div class="dashrow"><h3 style="margin:10px 0">Riwayat pengerjaan</h3><button id="clearHistory" type="button" style="border-color:#d87575;color:#a33">🗑️ Hapus Semua Riwayat</button></div>'+(entries.length?entries.map(([k,v])=>`<div class="historyitem"><span>${k} • ${v.correct}/15 benar</span><b>${v.best}/100</b></div>`).join(''):'<p class="small">Belum ada riwayat.</p>');$('clearHistory').onclick=clearHistory}
-function clearHistory(){if(!confirm('Hapus seluruh riwayat belajar ALETHEIA? Nilai, bintang, dan statistik Dashboard juga akan direset pada perangkat ini.'))return;localStorage.removeItem('alethiaResultsFinal');renderHistory();updateDashboard();renderCalendar()}
+function clearHistory(){if(!confirm('Hapus seluruh riwayat belajar ALETHEIA? Nilai, bintang, dan statistik Dashboard juga akan direset pada perangkat ini.'))return;localStorage.removeItem('alethiaResultsFinal');if(window.ALETHEIA_CLOUD_SYNC)window.ALETHEIA_CLOUD_SYNC.clear();renderHistory();updateDashboard();renderCalendar()}
 function startQuiz(){currentKey=key(selected);qs=makeQs(selected);idx=0;answers=[];renderQuestion();$('quizPanel').scrollIntoView({behavior:'smooth',block:'start'})}
 function renderQuestion(){let q=qs[idx],area=$('quizArea');area.innerHTML=`<div class="dashrow"><b>${q.subject}</b><b>SOAL ${idx+1} / 15</b></div><div class="progress"><i style="width:${(idx+1)/15*100}%"></i></div><div class="question">${q.question}</div><div class="answers" id="answerList"></div><div id="feedback"></div><div class="dashrow" style="margin-top:14px"><button id="prev" ${idx===0?'disabled':''}>← Sebelumnya</button><button class="primary" id="next" disabled>${idx===14?'Lihat Hasil':'Soal Berikutnya →'}</button></div>`;q.options.forEach((v,i)=>{let b=document.createElement('button');b.className='answer';b.textContent=String.fromCharCode(65+i)+'. '+v;b.onclick=()=>choose(v);$('answerList').append(b)});if(answers[idx])showAnswered();$('prev').onclick=()=>{idx--;renderQuestion()};$('next').onclick=()=>{if(idx===14)finishQuiz();else{idx++;renderQuestion()}}}
 function choose(v){answers[idx]={choice:v};showAnswered()}
@@ -187,4 +190,59 @@ if($('togglePreview'))$('togglePreview').onclick=()=>{let w=$('previewWrap'),b=$
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 
 init();
-</script></body></html>
+</script>
+<script>
+/* ALETHEIAku: silent shared-device synchronization; no visible login screen. */
+(function(){
+ const cfg={apiKey:"AIzaSyBeCkSRgVRbX1XiC9kJeNSP1PMiu-mLWg",authDomain:"alethiaaku.firebaseapp.com",projectId:"alethiaaku",storageBucket:"alethiaaku.firebasestorage.app",messagingSenderId:"631545180770",appId:"1:631545180770:web:6cab501256bf3cdfee173b"};
+ const LOCAL_KEY="alethiaResultsFinal";
+ let db=null,uid=null,stop=null,ready=false,writing=false;
+ const read=()=>{try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")}catch(e){return {}}};
+ const writeLocal=data=>{localStorage.setItem(LOCAL_KEY,JSON.stringify(data));if(typeof renderCalendar==="function"){renderCalendar();updateDashboard();if(typeof renderHistory==="function"&&document.getElementById("history")&&!document.getElementById("history").hidden)renderHistory()}};
+ const ref=()=>db.collection("sharedData").doc("aletheia").collection("results");
+ async function push(data){
+  if(!ready||!uid)return;
+  writing=true;
+  try{
+   const entries=Object.entries(data);
+   for(let i=0;i<entries.length;i+=450){
+    const batch=db.batch();
+    entries.slice(i,i+450).forEach(([day,value])=>batch.set(ref().doc(day),value,{merge:true}));
+    await batch.commit();
+   }
+  }catch(e){console.error("ALETHEIAku cloud save:",e)}
+  finally{writing=false}
+ }
+ async function start(){
+  try{
+   if(!window.firebase)return;
+   const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
+   const auth=app.auth();db=app.firestore();
+   await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+   let user=auth.currentUser;
+   if(!user){const cred=await auth.signInAnonymously();user=cred.user}
+   uid=user.uid;
+   const snapshot=await ref().get(),cloud={};
+   snapshot.forEach(doc=>cloud[doc.id]=doc.data());
+   const local=read(),merged={...cloud};
+   Object.entries(local).forEach(([day,value])=>{
+    if(!merged[day]||Number(value.best||0)>Number(merged[day].best||0))merged[day]=value;
+   });
+   await push(merged);
+   writeLocal(merged);ready=true;
+   if(stop)stop();
+   stop=ref().onSnapshot(snap=>{
+    if(writing)return;
+    const latest={};snap.forEach(doc=>latest[doc.id]=doc.data());
+    writeLocal(latest);
+   },err=>console.error("ALETHEIAku cloud listener:",err));
+  }catch(e){console.error("ALETHEIAku sync initialization:",e)}
+ }
+ window.ALETHEIA_CLOUD_SYNC={
+  save:data=>{if(ready)push(data)},
+  clear:async()=>{if(!ready)return;try{const snap=await ref().get();for(let i=0;i<snap.docs.length;i+=450){const batch=db.batch();snap.docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit()}}catch(e){console.error("ALETHEIAku cloud clear:",e)}}
+ };
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
+})();
+</script>
+</body></html>
