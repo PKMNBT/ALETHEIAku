@@ -57,7 +57,7 @@ main{max-width:1120px;margin:20px auto;padding:0 15px}.ticker{overflow:hidden;wh
 <section class="panel"><h2>📊 Dashboard Prestasi</h2><div class="dashrow"><span class="small">Ringkasan hasil belajar</span><button id="showHistory">Lihat riwayat</button></div><div id="dashboard"><p class="small">Selesaikan quiz untuk melihat perkembangan dan hasil belajarmu di sini.</p></div><div id="history" hidden></div><hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><h2>📚 Mata Pelajaran</h2><div class="subjectgrid"><div class="subject">📖 Bahasa Indonesia</div><div class="subject">➗ Matematika</div><div class="subject">🌱 IPAS</div><div class="subject">🇮🇩 Pancasila</div><div class="subject">🔤 Bahasa Inggris</div><div class="subject">🎨 Seni & PJOK</div></div></section>
 </div>
 <section class="panel" id="quizPanel" style="margin-top:14px"><h2>🎯 Ruang Quiz</h2><div id="quizArea" style="text-align:center;padding:15px"><div style="font-size:48px">📚✨</div><h3 style="color:var(--deep)">15 Soal Menantimu!</h3><p class="small">Pilih tanggal pada kalender, lalu tekan Mulai Quiz.</p></div></section>
-</main><div class="footer">ALETHEIAku APP • Belajar dengan gembira, tumbuh menjadi luar biasa 🌟</div>
+</main><div class="footer">ALETHEIAku APP • Belajar dengan gembira, tumbuh menjadi luar biasa 🌟<br><span id="cloudSyncStatus" role="status" aria-live="polite">☁️ Menyiapkan sinkronisasi...</span></div>
 <script>
 const start=new Date(2026,9,31),end=new Date(2027,3,30),names=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const motives=['Aku bisa memulai sesuatu yang hebat!','Belajar sedikit demi sedikit membuatku pintar.','Aku berani mencoba hal baru.','Kesalahan adalah bagian dari belajar.','Aku bangga dengan usaha diriku.','Ilmu adalah hadiah untuk masa depanku.','Aku siap menjadi lebih baik besok!','Aku anak hebat yang tidak mudah menyerah!','Setiap usaha kecil membawaku dekat pada cita-cita.'];
@@ -196,12 +196,14 @@ init();
 (function(){
  const cfg={apiKey:"AIzaSyBeCkSRgVRbX1XiC9kJeNSP1PMiu-mLWg",authDomain:"alethiaaku.firebaseapp.com",projectId:"alethiaaku",storageBucket:"alethiaaku.firebasestorage.app",messagingSenderId:"631545180770",appId:"1:631545180770:web:6cab501256bf3cdfee173b"};
  const LOCAL_KEY="alethiaResultsFinal";
- let db=null,uid=null,stop=null,ready=false;
+ let db=null,uid=null,stop=null,ready=false,busy=false;
+ const status=(message)=>{const el=document.getElementById("cloudSyncStatus");if(el)el.textContent=message};
  const read=()=>{try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")}catch(e){return {}}};
  const writeLocal=data=>{localStorage.setItem(LOCAL_KEY,JSON.stringify(data));if(typeof renderCalendar==="function"){renderCalendar();updateDashboard();if(typeof renderHistory==="function"&&document.getElementById("history")&&!document.getElementById("history").hidden)renderHistory()}};
  const ref=()=>db.collection("sharedData").doc("aletheia").collection("results");
  async function push(data){
-  if(!uid||!db)return;
+  if(!uid||!db||busy)return;
+  busy=true;status("☁️ Mengirim hasil belajar ke cloud...");
   try{
    const entries=Object.entries(data);
    for(let i=0;i<entries.length;i+=450){
@@ -209,11 +211,14 @@ init();
     entries.slice(i,i+450).forEach(([day,value])=>batch.set(ref().doc(day),value,{merge:true}));
     await batch.commit();
    }
-  }catch(e){console.error("ALETHEIAku cloud save:",e)}
+   status("☁️ Tersinkron ke semua perangkat");
+  }catch(e){console.error("ALETHEIAku cloud save:",e);status("⚠️ Gagal menyimpan: "+(e.code||e.message||"periksa Firebase"))}
+  finally{busy=false}
  }
  async function start(){
+  status("☁️ Menghubungkan ke Firebase...");
   try{
-   if(!window.firebase)throw new Error("Firebase SDK tidak termuat");
+   if(!window.firebase)throw new Error("SDK Firebase tidak termuat. Periksa koneksi internet.");
    const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
    const auth=app.auth();db=app.firestore();
    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -226,21 +231,32 @@ init();
    Object.entries(local).forEach(([day,value])=>{
     if(!merged[day]||Number(value.best||0)>Number(merged[day].best||0))merged[day]=value;
    });
+   writeLocal(merged);
    ready=true;
    await push(merged);
-   writeLocal(merged);
    if(stop)stop();
    stop=ref().onSnapshot(snap=>{
     const latest={};snap.forEach(doc=>latest[doc.id]=doc.data());
-    writeLocal(latest);
-   },err=>console.error("ALETHEIAku cloud listener:",err));
-  }catch(e){console.error("ALETHEIAku sync initialization:",e)}
+    // Gabungkan nilai terbaik lokal dan cloud agar hasil dari perangkat lain tidak tertimpa.
+    const combined={...latest};
+    Object.entries(read()).forEach(([day,value])=>{
+     if(!combined[day]||Number(value.best||0)>Number(combined[day].best||0))combined[day]=value;
+    });
+    writeLocal(combined);
+    status("☁️ Terhubung • sinkronisasi aktif");
+   },err=>{console.error("ALETHEIAku cloud listener:",err);status("⚠️ Sinkronisasi terputus: "+(err.code||err.message))});
+  }catch(e){
+   console.error("ALETHEIAku sync initialization:",e);
+   const code=e.code||"";
+   let msg=code==="auth/operation-not-allowed"?"Aktifkan Anonymous di Firebase Authentication.":code==="permission-denied"?"Atur Firestore Rules agar pengguna yang login anonim boleh membaca dan menulis.":code==="unavailable"?"Firebase tidak dapat dijangkau. Periksa internet.":(code||e.message||"periksa konfigurasi Firebase");
+   status("⚠️ Belum tersinkron: "+msg);
+  }
  }
  window.ALETHEIA_CLOUD_SYNC={
-  save:data=>{if(ready)push(data)},
-  clear:async()=>{if(!ready)return;try{const snap=await ref().get();for(let i=0;i<snap.docs.length;i+=450){const batch=db.batch();snap.docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit()}}catch(e){console.error("ALETHEIAku cloud clear:",e)}}
+  save:data=>{if(ready)push(data);else status("⚠️ Belum terhubung; hasil tersimpan di perangkat ini dulu.")},
+  clear:async()=>{if(!ready)return;try{const snap=await ref().get();for(let i=0;i<snap.docs.length;i+=450){const batch=db.batch();snap.docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit()}status("☁️ Riwayat cloud sudah dihapus")}catch(e){console.error("ALETHEIAku cloud clear:",e);status("⚠️ Gagal menghapus cloud: "+(e.code||e.message))}}
  };
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
-})();
-</script>
+ window.addEventListener("online",()=>{if(!ready)start();else push(read())});
+})();</script>
 </body></html>
