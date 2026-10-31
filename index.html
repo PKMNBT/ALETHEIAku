@@ -285,6 +285,7 @@ init();
   state.unsubKids=state.db.collection('users').where('parentUid','==',state.uid).onSnapshot(kids=>{
    const alive=new Set();
    kids.forEach(kid=>{
+    if(kid.data().role!=='child')return;
     alive.add(kid.id);
     if(!childData[kid.id])childData[kid.id]={profile:kid.data(),results:{}};
     childData[kid.id].profile=kid.data();
