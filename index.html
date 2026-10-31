@@ -99,7 +99,7 @@ const $=id=>document.getElementById(id);
 function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function today(){let d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
 function getResults(){try{return JSON.parse(localStorage.getItem('alethiaResultsFinal')||'{}')}catch(e){return {}}}
-function saveResults(r){localStorage.setItem('alethiaResultsFinal',JSON.stringify(r));if(window.alethiaCloud&&window.alethiaCloud.uid)window.alethiaCloud.saveResults(r)}
+function saveResults(r){localStorage.setItem('alethiaResultsFinal',JSON.stringify(r));if(window.alethiaCloud&&window.alethiaCloud.uid)window.alethiaCloud.saveResults(r).catch(e=>console.error('Gagal menyimpan nilai ke cloud:',e))}
 function shuffle(a,seed){a=a.slice();for(let i=a.length-1;i>0;i--){seed=(seed*1664525+1013904223)>>>0;let j=seed%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function seed(d){return Number(key(d).replaceAll('-',''))}
 function makeQs(d){
@@ -253,9 +253,14 @@ init();
  }
  async function saveResults(r){
   if(!state.uid)return;
-  const batch=state.db.batch();
-  Object.entries(r).forEach(([day,v])=>batch.set(state.db.collection('users').doc(state.uid).collection('results').doc(day),v,{merge:true}));
-  await batch.commit();
+  try{
+   const entries=Object.entries(r);
+   for(let i=0;i<entries.length;i+=450){
+    const batch=state.db.batch();
+    entries.slice(i,i+450).forEach(([day,v])=>batch.set(state.db.collection('users').doc(state.uid).collection('results').doc(day),v,{merge:true}));
+    await batch.commit();
+   }
+  }catch(e){say('Nilai belum berhasil tersimpan online. Periksa koneksi lalu masuk kembali. '+(e.message||''));throw e}
  }
  async function clearResults(){
   if(!state.uid)return;
