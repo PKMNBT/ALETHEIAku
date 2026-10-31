@@ -30,42 +30,9 @@ main{max-width:1120px;margin:20px auto;padding:0 15px}.ticker{overflow:hidden;wh
 .iphone17-island{position:absolute;z-index:5;top:10px;left:50%;transform:translateX(-50%);width:118px;height:34px;border-radius:22px;background:#08090b;box-shadow:0 1px 1px #555}
 #livePhonePreview{width:100%;height:100%;border:0;display:block;background:#effaf7}
 @media(max-width:460px){.iphone17-frame{height:min(680px,175vw);width:min(320px,94vw);border-radius:44px;padding:7px}.iphone17-screen{border-radius:37px}.iphone17-island{top:7px;width:100px;height:28px}}
-
-#authGate{max-width:760px;margin:22px auto;padding:22px;background:#fff;border:1px solid #ccebe4;border-radius:22px;box-shadow:0 10px 30px #075c5915;color:#173e3b}
-#authGate h2{margin:0 0 8px;color:#075c59}#authGate p{color:#648782}
-.auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.auth-field{display:flex;flex-direction:column;gap:6px;margin:10px 0}.auth-field label{font-size:13px;font-weight:800}.auth-field input,.auth-field select{width:100%;padding:12px;border:1px solid #ccebe4;border-radius:11px;font:inherit;background:#fbfffd;color:#173e3b}
-.auth-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.auth-actions button{padding:12px 16px;border-radius:12px;border:1px solid #ccebe4;background:#fff;color:#075c59;font-weight:800;cursor:pointer}.auth-actions .primary{background:#087f78;color:white;border:0}
-#authMessage{margin-top:12px;padding:10px;border-radius:10px;background:#effaf7;font-size:13px;white-space:pre-wrap}
-#accountBar{max-width:1120px;margin:12px auto;padding:10px 15px;display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-#accountBar button{border:1px solid #ccebe4;border-radius:10px;padding:8px 12px;background:#fff;color:#075c59;font-weight:800}
-#parentPanel{max-width:1120px;margin:12px auto;padding:16px;background:#fff;border:1px solid #ccebe4;border-radius:18px;display:none}
-#parentChildren{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.child-card{padding:13px;border:1px solid #ccebe4;border-radius:13px;background:#f7fffc}
-@media(max-width:600px){.auth-grid{grid-template-columns:1fr}#authGate{margin:14px;padding:16px}}
-</style>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-</head><body>
+</style></head><body>
 <header><div class="brand">🌿 ALETHEIAku APP<small>TEMAN PINTAR ANAK INDONESIA</small></div><div class="class">📚 KELAS 4 SD</div></header>
-
-<section id="authGate">
- <h2>🌿 ALETHEIAku — Masuk Akun</h2>
- <p>Nilai dan riwayat belajar tersimpan online dan dapat dibuka dari perangkat berbeda.</p>
- <div class="auth-grid">
-  <div class="auth-field"><label for="authName">Nama lengkap (untuk daftar)</label><input id="authName" autocomplete="name" placeholder="Nama anak / orang tua"></div>
-  <div class="auth-field"><label for="authRole">Daftar sebagai</label><select id="authRole"><option value="parent">Orang tua</option><option value="child">Anak / Siswa</option></select></div>
-  <div class="auth-field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="username" placeholder="nama@email.com"></div>
-  <div class="auth-field"><label for="authPassword">Kata sandi (minimal 6 karakter)</label><input id="authPassword" type="password" autocomplete="new-password" placeholder="Kata sandi"></div>
- </div>
- <div class="auth-field" id="familyCodeWrap" style="display:none"><label for="familyCode">Kode keluarga dari orang tua</label><input id="familyCode" autocomplete="off" placeholder="Kode keluarga 8 karakter"></div>
- <div class="auth-actions"><button class="primary" id="authRegister">Buat Akun</button><button id="authLogin">Masuk</button></div>
- <div id="authMessage">Orang tua membuat akun terlebih dahulu, lalu membagikan kode keluarga kepada anak.</div>
-</section>
-<div id="accountBar"><span id="accountLabel"></span><button id="logoutBtn">Keluar</button></div>
-<section id="parentPanel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">👨‍👩‍👧 Dashboard Orang Tua</h2><button id="refreshParent">Muat ulang</button></div><p id="familyCodeDisplay" class="small"></p><div id="parentChildren"><p class="small">Belum ada akun anak.</p></div></section>
-
-<main id="appMain" style="display:none">
+<main>
 <section class="panel" id="mobilePreview" style="margin-bottom:14px">
  <div class="dashrow"><div><h2 style="margin:0">📱 Preview Tampilan HP</h2></div><button id="togglePreview" type="button">Sembunyikan Preview</button></div>
  <div id="previewWrap" style="display:flex;justify-content:center;padding:18px 8px;background:linear-gradient(135deg,#d9f8f0,#fff4cf);border-radius:18px;margin-top:10px;overflow:hidden">
@@ -99,7 +66,7 @@ const $=id=>document.getElementById(id);
 function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function today(){let d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
 function getResults(){try{return JSON.parse(localStorage.getItem('alethiaResultsFinal')||'{}')}catch(e){return {}}}
-function saveResults(r){localStorage.setItem('alethiaResultsFinal',JSON.stringify(r));if(window.alethiaCloud&&window.alethiaCloud.uid)window.alethiaCloud.saveResults(r).catch(e=>console.error('Gagal menyimpan nilai ke cloud:',e))}
+function saveResults(r){localStorage.setItem('alethiaResultsFinal',JSON.stringify(r))}
 function shuffle(a,seed){a=a.slice();for(let i=a.length-1;i>0;i--){seed=(seed*1664525+1013904223)>>>0;let j=seed%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function seed(d){return Number(key(d).replaceAll('-',''))}
 function makeQs(d){
@@ -148,7 +115,7 @@ function renderCalendar(){let [y,mo]=$('month').value.split('-').map(Number),fir
 function updateDashboard(){let vals=Object.values(getResults()),scores=vals.map(x=>x.best);$('daysDone').textContent=vals.length;$('bestScore').textContent=scores.length?Math.max(...scores):'—';$('stars').textContent=vals.reduce((a,x)=>a+(x.stars||0),0)+' ⭐';$('average').textContent=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):'—';let d=$('dashboard');if(!scores.length){d.innerHTML='<p class="small">Belum ada hasil. Yuk mulai quiz pertamamu!</p>';return}let avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length),best=Math.max(...scores);d.innerHTML=`<div class="dashrow"><div><span class="small">Rata-rata nilai terbaik</span><h2 style="font-size:30px;margin:2px 0">${avg}/100</h2></div><div><span class="small">Nilai tertinggi</span><h2 style="font-size:30px;margin:2px 0;color:#b18413">${best}</h2></div></div><div class="progress"><i style="width:${avg}%"></i></div><p class="small">Kamu sudah menyelesaikan ${vals.length} tanggal belajar. Terus semangat! 🌱</p>`}
 function toggleHistory(){let h=$('history');h.hidden=!h.hidden;if(!h.hidden){renderHistory()}}
 function renderHistory(){let h=$('history'),r=getResults(),entries=Object.entries(r).sort((a,b)=>b[0].localeCompare(a[0]));h.innerHTML='<div class="dashrow"><h3 style="margin:10px 0">Riwayat pengerjaan</h3><button id="clearHistory" type="button" style="border-color:#d87575;color:#a33">🗑️ Hapus Semua Riwayat</button></div>'+(entries.length?entries.map(([k,v])=>`<div class="historyitem"><span>${k} • ${v.correct}/15 benar</span><b>${v.best}/100</b></div>`).join(''):'<p class="small">Belum ada riwayat.</p>');$('clearHistory').onclick=clearHistory}
-function clearHistory(){if(!confirm('Hapus seluruh riwayat belajar ALETHEIA? Nilai dan statistik akun ini juga akan direset.'))return;localStorage.removeItem('alethiaResultsFinal');if(window.alethiaCloud&&window.alethiaCloud.clearResults)window.alethiaCloud.clearResults();renderHistory();updateDashboard();renderCalendar()}
+function clearHistory(){if(!confirm('Hapus seluruh riwayat belajar ALETHEIA? Nilai, bintang, dan statistik Dashboard juga akan direset pada perangkat ini.'))return;localStorage.removeItem('alethiaResultsFinal');renderHistory();updateDashboard();renderCalendar()}
 function startQuiz(){currentKey=key(selected);qs=makeQs(selected);idx=0;answers=[];renderQuestion();$('quizPanel').scrollIntoView({behavior:'smooth',block:'start'})}
 function renderQuestion(){let q=qs[idx],area=$('quizArea');area.innerHTML=`<div class="dashrow"><b>${q.subject}</b><b>SOAL ${idx+1} / 15</b></div><div class="progress"><i style="width:${(idx+1)/15*100}%"></i></div><div class="question">${q.question}</div><div class="answers" id="answerList"></div><div id="feedback"></div><div class="dashrow" style="margin-top:14px"><button id="prev" ${idx===0?'disabled':''}>← Sebelumnya</button><button class="primary" id="next" disabled>${idx===14?'Lihat Hasil':'Soal Berikutnya →'}</button></div>`;q.options.forEach((v,i)=>{let b=document.createElement('button');b.className='answer';b.textContent=String.fromCharCode(65+i)+'. '+v;b.onclick=()=>choose(v);$('answerList').append(b)});if(answers[idx])showAnswered();$('prev').onclick=()=>{idx--;renderQuestion()};$('next').onclick=()=>{if(idx===14)finishQuiz();else{idx++;renderQuestion()}}}
 function choose(v){answers[idx]={choice:v};showAnswered()}
@@ -220,133 +187,4 @@ if($('togglePreview'))$('togglePreview').onclick=()=>{let w=$('previewWrap'),b=$
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 
 init();
-</script>
-
-<script>
-(function(){
- const cfg={apiKey:"AIzaSyBeCkSRgVRbX1XiC9kJeNSP1PMiu-mLWg",authDomain:"alethiaaku.firebaseapp.com",projectId:"alethiaaku",storageBucket:"alethiaaku.firebasestorage.app",messagingSenderId:"631545180770",appId:"1:631545180770:web:6cab501256bf3cdfee173b"};
- const state={uid:null,db:null,auth:null,profile:null,unsubResults:null,unsubKids:null,unsubKidResults:{}};
- const el=id=>document.getElementById(id);
- const say=t=>{if(el('authMessage'))el('authMessage').textContent=t};
- const esc=v=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const code=()=>{const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s};
- async function syncIn(){
-  const ref=state.db.collection('users').doc(state.uid).collection('results');
-  const snap=await ref.get(),cloud={};
-  snap.forEach(d=>cloud[d.id]=d.data());
-  const local=JSON.parse(localStorage.getItem('alethiaResultsFinal')||'{}');
-  const batch=state.db.batch();let changed=false;
-  Object.entries(local).forEach(([day,v])=>{
-   if(!cloud[day]||Number(v.best||0)>Number(cloud[day].best||0)){
-    cloud[day]=v;batch.set(ref.doc(day),v,{merge:true});changed=true;
-   }
-  });
-  if(changed)await batch.commit();
-  localStorage.setItem('alethiaResultsFinal',JSON.stringify(cloud));
-  if(state.unsubResults)state.unsubResults();
-  state.unsubResults=ref.onSnapshot(live=>{
-   const latest={};live.forEach(d=>latest[d.id]=d.data());
-   localStorage.setItem('alethiaResultsFinal',JSON.stringify(latest));
-   if(typeof renderCalendar==='function'){renderCalendar();updateDashboard();if(typeof renderHistory==='function')renderHistory()}
-  },e=>say('Sinkronisasi nilai terhenti: '+e.message));
-  if(typeof renderCalendar==='function'){renderCalendar();updateDashboard()}
- }
- async function saveResults(r){
-  if(!state.uid)return;
-  try{
-   const entries=Object.entries(r);
-   for(let i=0;i<entries.length;i+=450){
-    const batch=state.db.batch();
-    entries.slice(i,i+450).forEach(([day,v])=>batch.set(state.db.collection('users').doc(state.uid).collection('results').doc(day),v,{merge:true}));
-    await batch.commit();
-   }
-  }catch(e){say('Nilai belum berhasil tersimpan online. Periksa koneksi lalu masuk kembali. '+(e.message||''));throw e}
- }
- async function clearResults(){
-  if(!state.uid)return;
-  const ref=state.db.collection('users').doc(state.uid).collection('results'),snap=await ref.get(),batch=state.db.batch();
-  snap.forEach(d=>batch.delete(d.ref));await batch.commit();
- }
- async function parentDashboard(){
-  if(!state.profile||state.profile.role!=='parent')return;
-  el('familyCodeDisplay').textContent='Kode keluarga anak: '+state.profile.familyId+' — bagikan secara pribadi kepada anak.';
-  const box=el('parentChildren');
-  if(state.unsubKids)state.unsubKids();
-  Object.values(state.unsubKidResults).forEach(fn=>fn());state.unsubKidResults={};
-  const childData={};
-  const render=()=>{
-   box.innerHTML='';
-   const kids=Object.entries(childData);
-   if(!kids.length){box.innerHTML='<p class="small">Belum ada anak terhubung. Daftarkan akun anak memakai kode keluarga di atas.</p>';return}
-   kids.forEach(([uid,item])=>{
-    const vals=Object.values(item.results||{}),best=vals.length?Math.max(...vals.map(v=>Number(v.best||0))):0,avg=vals.length?Math.round(vals.reduce((a,v)=>a+Number(v.best||0),0)/vals.length):0;
-    const card=document.createElement('div');card.className='child-card';
-    card.innerHTML='<b>'+esc(item.profile.displayName||'Anak')+'</b><p class="small">'+vals.length+' hari belajar</p><div>Nilai tertinggi: <b>'+best+'</b></div><div>Rata-rata: <b>'+avg+'</b></div>';
-    const recent=Object.entries(item.results||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,7);
-    if(recent.length){const list=document.createElement('div');list.style.marginTop='8px';list.innerHTML='<b class="small">Riwayat terbaru</b>'+recent.map(([day,v])=>'<div class="small">'+esc(day)+' — '+Number(v.best||0)+'/100</div>').join('');card.append(list)}
-    box.append(card);
-   });
-  };
-  state.unsubKids=state.db.collection('users').where('parentUid','==',state.uid).onSnapshot(kids=>{
-   const alive=new Set();
-   kids.forEach(kid=>{
-    if(kid.data().role!=='child')return;
-    alive.add(kid.id);
-    if(!childData[kid.id])childData[kid.id]={profile:kid.data(),results:{}};
-    childData[kid.id].profile=kid.data();
-    if(!state.unsubKidResults[kid.id]){
-     state.unsubKidResults[kid.id]=state.db.collection('users').doc(kid.id).collection('results').onSnapshot(rs=>{
-      const values={};rs.forEach(d=>values[d.id]=d.data());
-      childData[kid.id].results=values;render();
-     },e=>say('Tidak dapat memuat riwayat anak: '+e.message));
-    }
-   });
-   Object.keys(childData).forEach(id=>{if(!alive.has(id)){delete childData[id];if(state.unsubKidResults[id]){state.unsubKidResults[id]();delete state.unsubKidResults[id]}}});
-   render();
-  },e=>{box.innerHTML='<p class="small">Gagal memuat daftar anak: '+esc(e.message)+'</p>'});
- }
- async function register(){
-  const name=el('authName').value.trim(),role=el('authRole').value,email=el('authEmail').value.trim(),pass=el('authPassword').value,fc=el('familyCode').value.trim().toUpperCase();
-  if(!name||!email||pass.length<6){say('Lengkapi nama, email, dan kata sandi minimal 6 karakter.');return}
-  try{
-   say('Membuat akun...');
-   let familyId=null,parentUid=null;
-   if(role==='child'){
-    if(!fc){say('Minta kode keluarga kepada orang tua terlebih dahulu.');return}
-    const fam=await state.db.collection('families').doc(fc).get();
-    if(!fam.exists){say('Kode keluarga tidak ditemukan.');return}
-    familyId=fc;parentUid=fam.data().parentUid;
-   }else familyId=code();
-   const cred=await state.auth.createUserWithEmailAndPassword(email,pass),uid=cred.user.uid;
-   if(role==='parent')await state.db.collection('families').doc(familyId).set({parentUid:uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-   await state.db.collection('users').doc(uid).set({displayName:name,role,familyId,parentUid:role==='parent'?uid:parentUid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-   say('Akun berhasil dibuat. Sedang membuka aplikasi...');
-  }catch(e){say('Gagal membuat akun: '+(e.message||e.code))}
- }
- async function login(){try{say('Sedang masuk...');await state.auth.signInWithEmailAndPassword(el('authEmail').value.trim(),el('authPassword').value)}catch(e){say('Gagal masuk: '+(e.message||e.code))}}
- async function authChanged(user){
-  const gate=el('authGate'),main=el('appMain'),bar=el('accountBar'),parent=el('parentPanel');
-  if(!user){if(state.unsubResults){state.unsubResults();state.unsubResults=null}if(state.unsubKids){state.unsubKids();state.unsubKids=null}Object.values(state.unsubKidResults).forEach(fn=>fn());state.unsubKidResults={};state.uid=null;state.profile=null;localStorage.removeItem('alethiaResultsFinal');gate.style.display='block';main.style.display='none';bar.style.display='none';parent.style.display='none';return}
-  try{
-   state.uid=user.uid;const p=await state.db.collection('users').doc(user.uid).get();
-   if(!p.exists){await new Promise(resolve=>setTimeout(resolve,900));const retry=await state.db.collection('users').doc(user.uid).get();if(!retry.exists){say('Profil akun belum tersedia. Coba masuk kembali beberapa saat lagi.');await state.auth.signOut();return}state.profile=retry.data()}else state.profile=p.data();
-   gate.style.display='none';main.style.display='block';bar.style.display='flex';
-   el('accountLabel').textContent=(state.profile.role==='parent'?'Orang tua: ':'Halo, ')+(state.profile.displayName||user.email);
-   el('logoutBtn').onclick=()=>state.auth.signOut();
-   if(state.profile.role==='parent'){parent.style.display='block';el('refreshParent').onclick=()=>parentDashboard();await parentDashboard()}else parent.style.display='none';
-   await syncIn();
-  }catch(e){say('Gagal memuat akun/data. Periksa Firestore: '+e.message)}
- }
- function start(){
-  if(!window.firebase||!firebase.apps){say('SDK Firebase belum termuat. Muat ulang halaman.');return}
-  const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);state.auth=app.auth();state.db=app.firestore();
-  el('authRegister').onclick=register;el('authLogin').onclick=login;
-  el('authRole').onchange=()=>{el('familyCodeWrap').style.display=el('authRole').value==='child'?'flex':'none'};
-  el('refreshParent').onclick=parentDashboard;
-  window.alethiaCloud={get uid(){return state.uid},saveResults,clearResults};
-  state.auth.onAuthStateChanged(authChanged);
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
-})();
-</script>
-</body></html>
+</script></body></html>
