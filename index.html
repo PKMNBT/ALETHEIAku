@@ -23,6 +23,37 @@ main{max-width:1120px;margin:20px auto;padding:0 15px}.ticker{overflow:hidden;wh
 
 @media(prefers-reduced-motion:reduce){.ticker span,.ecg svg{animation:none}}
 
+/* Final responsive polish */
+:focus-visible{outline:3px solid #e8b83e;outline-offset:3px}
+button{transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease}
+button:not(:disabled):active{transform:translateY(1px)}
+button:not(:disabled):hover{box-shadow:0 4px 12px #075c591c}
+.panel,.stat{min-width:0}
+.hero,.layout,.stats{min-width:0}
+#openPreviewBtn{min-height:44px}
+@media(min-width:1100px){main{max-width:1180px}}
+@media(max-width:760px){
+ header{align-items:center}.brand{line-height:1.15}.brand small{font-size:9px;letter-spacing:1.5px}
+ .hero{align-items:center}.hero p{font-size:14px}
+ .layout{grid-template-columns:minmax(0,1fr)}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .panel{border-radius:15px}.calendar{gap:4px}.day{min-width:0;padding:10px 0}
+ .controls{align-items:stretch}.controls button{white-space:nowrap}
+ .dashrow{gap:7px}.dashrow button{min-width:0}
+ .answers button{width:100%;line-height:1.4}.result{padding:14px}
+ .result .dashrow{flex-direction:column}.result .dashrow button{width:100%}
+ #previewWrap{padding:12px 4px!important}
+}
+@media(max-width:420px){
+ header{gap:6px}.brand{font-size:17px}.brand small{font-size:8px}
+ .class{font-size:9px}main{padding:0 9px}
+ .stat{padding:11px}.stat b{font-size:20px}
+ .hero h1{font-size:22px}.mascot{font-size:42px}
+ .panel h2{font-size:17px}.question{font-size:17px}
+ .day{font-size:12px;min-height:38px}
+}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
+
+
 
 /* Live mobile preview frame */
 .iphone17-frame{width:290px;max-width:100%;height:610px;padding:8px;border-radius:46px;background:linear-gradient(135deg,#f4f5f7,#777d86 22%,#17191d 48%,#aeb3bb 75%,#34383e);box-shadow:0 18px 42px #102f2d45,inset 0 0 0 2px #ffffffb8;position:relative}
@@ -121,7 +152,13 @@ function renderCalendar(){let [y,mo]=$('month').value.split('-').map(Number),fir
 function updateDashboard(){let vals=Object.values(getResults()),scores=vals.map(x=>x.best);$('daysDone').textContent=vals.length;$('bestScore').textContent=scores.length?Math.max(...scores):'—';$('stars').textContent=vals.reduce((a,x)=>a+(x.stars||0),0)+' ⭐';$('average').textContent=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):'—';let d=$('dashboard');if(!scores.length){d.innerHTML='<p class="small">Belum ada hasil. Yuk mulai quiz pertamamu!</p>';return}let avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length),best=Math.max(...scores);d.innerHTML=`<div class="dashrow"><div><span class="small">Rata-rata nilai terbaik</span><h2 style="font-size:30px;margin:2px 0">${avg}/100</h2></div><div><span class="small">Nilai tertinggi</span><h2 style="font-size:30px;margin:2px 0;color:#b18413">${best}</h2></div></div><div class="progress"><i style="width:${avg}%"></i></div><p class="small">Kamu sudah menyelesaikan ${vals.length} tanggal belajar. Terus semangat! 🌱</p>`}
 function toggleHistory(){let h=$('history');h.hidden=!h.hidden;if(!h.hidden){renderHistory()}}
 function renderHistory(){let h=$('history'),r=getResults(),entries=Object.entries(r).sort((a,b)=>b[0].localeCompare(a[0]));h.innerHTML='<div class="dashrow"><h3 style="margin:10px 0">Riwayat pengerjaan</h3><button id="clearHistory" type="button" style="border-color:#d87575;color:#a33">🗑️ Hapus Semua Riwayat</button></div>'+(entries.length?entries.map(([k,v])=>`<div class="historyitem"><span>${k} • ${v.correct}/15 benar</span><b>${v.best}/100</b></div>`).join(''):'<p class="small">Belum ada riwayat.</p>');$('clearHistory').onclick=clearHistory}
-function clearHistory(){if(!confirm('Hapus seluruh riwayat belajar ALETHEIA? Nilai, bintang, dan statistik Dashboard juga akan direset pada perangkat ini.'))return;localStorage.removeItem('alethiaResultsFinal');if(window.ALETHEIA_CLOUD_SYNC)window.ALETHEIA_CLOUD_SYNC.clear();renderHistory();updateDashboard();renderCalendar()}
+async function clearHistory(){
+ if(!confirm('Hapus seluruh riwayat belajar ALETHEIA? Nilai, bintang, dan statistik Dashboard akan dihapus dari semua perangkat yang tersinkron.'))return;
+ const button=$('clearHistory');if(button){button.disabled=true;button.textContent='Menghapus...'}
+ localStorage.removeItem('alethiaResultsFinal');renderHistory();updateDashboard();renderCalendar();
+ try{if(window.ALETHEIA_CLOUD_SYNC)await window.ALETHEIA_CLOUD_SYNC.clear();renderHistory();updateDashboard();renderCalendar()}
+ catch(e){console.error('Gagal membersihkan riwayat:',e);alert('Riwayat lokal sudah dibersihkan, tetapi cloud belum berhasil dihapus. Periksa koneksi lalu coba lagi.')}
+}
 function startQuiz(){currentKey=key(selected);qs=makeQs(selected);idx=0;answers=[];renderQuestion();$('quizPanel').scrollIntoView({behavior:'smooth',block:'start'})}
 function renderQuestion(){let q=qs[idx],area=$('quizArea');area.innerHTML=`<div class="dashrow"><b>${q.subject}</b><b>SOAL ${idx+1} / 15</b></div><div class="progress"><i style="width:${(idx+1)/15*100}%"></i></div><div class="question">${q.question}</div><div class="answers" id="answerList"></div><div id="feedback"></div><div class="dashrow" style="margin-top:14px"><button id="prev" ${idx===0?'disabled':''}>← Sebelumnya</button><button class="primary" id="next" disabled>${idx===14?'Lihat Hasil':'Soal Berikutnya →'}</button></div>`;q.options.forEach((v,i)=>{let b=document.createElement('button');b.className='answer';b.textContent=String.fromCharCode(65+i)+'. '+v;b.onclick=()=>choose(v);$('answerList').append(b)});if(answers[idx])showAnswered();$('prev').onclick=()=>{idx--;renderQuestion()};$('next').onclick=()=>{if(idx===14)finishQuiz();else{idx++;renderQuestion()}}}
 function choose(v){answers[idx]={choice:v};showAnswered()}
@@ -198,70 +235,71 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.a
 init();
 </script>
 <script>
-/* ALETHEIAku: silent shared-device synchronization; no visible login screen. */
+/* ALETHEIAku shared sync: clear marker prevents deleted history returning on another device. */
 (function(){
  const cfg={apiKey:"AIzaSyBeCSkSRgVRbX1XiC9kJeNSP1PMiu-mLWg",authDomain:"aletheiaku.firebaseapp.com",projectId:"aletheiaku",storageBucket:"aletheiaku.firebasestorage.app",messagingSenderId:"631545180770",appId:"1:631545180770:web:6cab501256bf3cdfee173b"};
- const LOCAL_KEY="alethiaResultsFinal";
- let db=null,uid=null,stop=null,ready=false,busy=false;
- const status=(message)=>{const el=document.getElementById("cloudSyncStatus");if(el)el.textContent=message};
- const read=()=>{try{return JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}")}catch(e){return {}}};
+ const LOCAL_KEY="alethiaResultsFinal",CLEAR_KEY="alethiaClearAt";
+ let db=null,uid=null,stopResults=null,stopMeta=null,ready=false,busy=false,clearAt=0;
+ const status=m=>{const el=document.getElementById("cloudSyncStatus");if(el)el.textContent=m};
+ const read=()=>{try{const v=JSON.parse(localStorage.getItem(LOCAL_KEY)||"{}");return v&&typeof v==="object"&&!Array.isArray(v)?v:{}}catch(e){return {}}};
+ const localClearAt=()=>Number(localStorage.getItem(CLEAR_KEY)||0);
  const writeLocal=data=>{localStorage.setItem(LOCAL_KEY,JSON.stringify(data));if(typeof renderCalendar==="function"){renderCalendar();updateDashboard();if(typeof renderHistory==="function"&&document.getElementById("history")&&!document.getElementById("history").hidden)renderHistory()}};
- const ref=()=>db.collection("sharedData").doc("aletheia").collection("results");
+ const resultsRef=()=>db.collection("sharedData").doc("aletheia").collection("results");
+ const metaRef=()=>db.collection("sharedData").doc("aletheia").collection("meta").doc("state");
+ function applyClearMarker(t){t=Number(t||0);if(t>localClearAt()){clearAt=Math.max(clearAt,t);localStorage.setItem(CLEAR_KEY,String(t));localStorage.removeItem(LOCAL_KEY);writeLocal({})}}
  async function push(data){
   if(!uid||!db||busy)return;
-  busy=true;status("☁️ Mengirim hasil belajar ke cloud...");
+  busy=true;
   try{
-   const entries=Object.entries(data);
-   for(let i=0;i<entries.length;i+=450){
-    const batch=db.batch();
-    entries.slice(i,i+450).forEach(([day,value])=>batch.set(ref().doc(day),value,{merge:true}));
-    await batch.commit();
-   }
+   const meta=await metaRef().get(),remoteClear=Number((meta.exists&&meta.data().clearAt)||0);
+   if(remoteClear>localClearAt()){applyClearMarker(remoteClear);status("☁️ Riwayat lama dibersihkan sesuai perangkat utama");return}
+   status("☁️ Mengirim hasil belajar ke cloud...");
+   const entries=Object.entries(data||{});
+   for(let i=0;i<entries.length;i+=450){const batch=db.batch();entries.slice(i,i+450).forEach(([day,value])=>batch.set(resultsRef().doc(day),value));await batch.commit()}
    status("☁️ Tersinkron ke semua perangkat");
   }catch(e){console.error("ALETHEIAku cloud save:",e);status("⚠️ Gagal menyimpan: "+(e.code||e.message||"periksa Firebase"))}
   finally{busy=false}
+ }
+ async function clearCloud(){
+  if(!ready||!db)throw new Error("Perangkat belum terhubung ke cloud. Riwayat lokal sudah dibersihkan.");
+  const marker=Date.now();
+  await metaRef().set({clearAt:marker},{merge:true});
+  clearAt=marker;localStorage.setItem(CLEAR_KEY,String(marker));localStorage.removeItem(LOCAL_KEY);writeLocal({});
+  const snap=await resultsRef().get();
+  for(let i=0;i<snap.docs.length;i+=450){const batch=db.batch();snap.docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit()}
+  status("☁️ Riwayat berhasil dibersihkan dari cloud dan perangkat tersinkron");
  }
  async function start(){
   status("☁️ Menghubungkan ke Firebase...");
   try{
    if(!window.firebase)throw new Error("SDK Firebase tidak termuat. Periksa koneksi internet.");
-   const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg);
-   const auth=app.auth();db=app.firestore();
+   const app=firebase.apps.length?firebase.app():firebase.initializeApp(cfg),auth=app.auth();db=app.firestore();
    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-   let user=auth.currentUser;
-   if(!user){const cred=await auth.signInAnonymously();user=cred.user}
-   uid=user.uid;
-   const snapshot=await ref().get(),cloud={};
-   snapshot.forEach(doc=>cloud[doc.id]=doc.data());
-   const local=read(),merged={...cloud};
-   Object.entries(local).forEach(([day,value])=>{
-    if(!merged[day]||Number(value.best||0)>Number(merged[day].best||0))merged[day]=value;
-   });
-   writeLocal(merged);
-   ready=true;
-   await push(merged);
-   if(stop)stop();
-   stop=ref().onSnapshot(snap=>{
-    const latest={};snap.forEach(doc=>latest[doc.id]=doc.data());
-    // Gabungkan nilai terbaik lokal dan cloud agar hasil dari perangkat lain tidak tertimpa.
+   let user=auth.currentUser;if(!user){const cred=await auth.signInAnonymously();user=cred.user}uid=user.uid;
+   const meta=await metaRef().get(),remoteClear=Number((meta.exists&&meta.data().clearAt)||0);
+   if(remoteClear>localClearAt())applyClearMarker(remoteClear);
+   clearAt=Math.max(clearAt,remoteClear,localClearAt());
+   const snap=await resultsRef().get(),cloud={};snap.forEach(doc=>cloud[doc.id]=doc.data());
+   const merged={...cloud};
+   Object.entries(read()).forEach(([day,value])=>{if(!merged[day]||Number(value.best||0)>Number(merged[day].best||0))merged[day]=value});
+   writeLocal(merged);ready=true;
+   if(stopMeta)stopMeta();if(stopResults)stopResults();
+   stopMeta=metaRef().onSnapshot(doc=>{const t=Number((doc.exists&&doc.data().clearAt)||0);if(t>localClearAt()){applyClearMarker(t);status("☁️ Riwayat dibersihkan dari perangkat lain")}},err=>{console.error("ALETHEIAku meta listener:",err);status("⚠️ Pemantau sinkronisasi: "+(err.code||err.message))});
+   stopResults=resultsRef().onSnapshot(snap2=>{
+    const latest={};snap2.forEach(doc=>latest[doc.id]=doc.data());
+    if(clearAt>localClearAt())applyClearMarker(clearAt);
     const combined={...latest};
-    Object.entries(read()).forEach(([day,value])=>{
-     if(!combined[day]||Number(value.best||0)>Number(combined[day].best||0))combined[day]=value;
-    });
-    writeLocal(combined);
-    status("☁️ Terhubung • sinkronisasi aktif");
+    Object.entries(read()).forEach(([day,value])=>{if(!combined[day]||Number(value.best||0)>Number(combined[day].best||0))combined[day]=value});
+    writeLocal(combined);status("☁️ Terhubung • sinkronisasi aktif");
    },err=>{console.error("ALETHEIAku cloud listener:",err);status("⚠️ Sinkronisasi terputus: "+(err.code||err.message))});
+   await push(merged);
   }catch(e){
    console.error("ALETHEIAku sync initialization:",e);
-   const code=e.code||"";
-   let msg=code==="auth/operation-not-allowed"?"Aktifkan Anonymous di Firebase Authentication.":code==="permission-denied"?"Atur Firestore Rules agar pengguna yang login anonim boleh membaca dan menulis.":code==="unavailable"?"Firebase tidak dapat dijangkau. Periksa internet.":(code||e.message||"periksa konfigurasi Firebase");
+   const code=e.code||"",msg=code==="auth/operation-not-allowed"?"Aktifkan Anonymous di Firebase Authentication.":code==="permission-denied"?"Periksa Firestore Rules untuk akses baca/tulis pengguna anonim.":code==="unavailable"?"Firebase tidak dapat dijangkau. Periksa internet.":(code||e.message||"periksa konfigurasi Firebase");
    status("⚠️ Belum tersinkron: "+msg);
   }
  }
- window.ALETHEIA_CLOUD_SYNC={
-  save:data=>{if(ready)push(data);else status("⚠️ Belum terhubung; hasil tersimpan di perangkat ini dulu.")},
-  clear:async()=>{if(!ready)return;try{const snap=await ref().get();for(let i=0;i<snap.docs.length;i+=450){const batch=db.batch();snap.docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit()}status("☁️ Riwayat cloud sudah dihapus")}catch(e){console.error("ALETHEIAku cloud clear:",e);status("⚠️ Gagal menghapus cloud: "+(e.code||e.message))}}
- };
+ window.ALETHEIA_CLOUD_SYNC={save:data=>{if(ready)push(data);else status("⚠️ Belum terhubung; hasil tersimpan di perangkat ini dulu.")},clear:clearCloud};
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start();
  window.addEventListener("online",()=>{if(!ready)start();else push(read())});
 })();</script>
