@@ -219,7 +219,7 @@ function updateDashboard(){let vals=Object.values(getResults()),scores=vals.map(
 function toggleHistory(){showPage('history');renderHistory()}
 function renderHistory(){
  const h=$('history'),r=getResults();
- const entries=Object.entries(r).filter(([k,v])=>k!=="_state"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(k)&&v&&typeof v==="object"&&v.done)
+ const entries=Object.entries(r).filter(([k,v])=>k!=="_state"&&/^\d{4}-\d{2}-\d{2}$/.test(k)&&v&&typeof v==="object"&&v.done)
   .sort((a,b)=>b[0].localeCompare(a[0]));
  h.innerHTML='';
  const head=document.createElement('div');head.className='history-heading';
@@ -272,7 +272,7 @@ function finishQuiz(){
  let motive=motives[(seed(selected)+selected.getDate())%motives.length];
  $('quizArea').innerHTML=`<div class="result"><div class="cup">🏆🧸</div><h2 style="color:#9a7112">SELAMAT ALETHEIAKU!</h2><div class="score">${score}/100</div><p>Kamu telah menyelesaikan 15 pertanyaan!</p><div style="font-size:26px">${'⭐'.repeat(stars)||'🌱'}</div><p class="motivation">“${motive}”</p><p>Jawaban benar: <b>${correct}/15</b> • Perlu dipelajari lagi: <b>${15-correct}</b></p><div class="dashrow" style="justify-content:center"><button class="primary" id="backCal">Kembali ke Kalender</button><button id="goHistory">📚 Buka Riwayat</button></div></div>`;
  $('backCal').onclick=()=>{renderCalendar();$('quizArea').innerHTML='<p class="small">Hasil tersimpan. Buka menu Riwayat untuk pembahasan dan sertifikat.</p>'};
- $('goHistory').onclick=()=>{const panel=$('history');panel.hidden=false;renderHistory();panel.scrollIntoView({behavior:'smooth',block:'start'})};
+ $('goHistory').onclick=()=>{showPage('history');renderHistory()};
  renderCalendar();showPage('quiz');$('quizPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function downloadCertificate(record=null,dateKey=null){
