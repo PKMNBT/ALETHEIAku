@@ -176,26 +176,36 @@ function updateDashboard(){let vals=Object.values(getResults()),scores=vals.map(
 function toggleHistory(){let h=$('history');h.hidden=!h.hidden;if(!h.hidden){renderHistory()}}
 function renderHistory(){
  const h=$('history'),r=getResults();
- const entries=Object.entries(r).filter(([k,v])=>k!=="_state"&&/^\d{4}-\d{2}-\d{2}$/.test(k)&&v&&typeof v==="object"&&v.done)
+ const entries=Object.entries(r).filter(([k,v])=>k!=="_state"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(k)&&v&&typeof v==="object"&&v.done)
   .sort((a,b)=>b[0].localeCompare(a[0]));
- const dateLabel=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
- h.innerHTML='<div class="dashrow"><div><h3 style="margin:10px 0 2px">Riwayat Belajar</h3><p class="small">Pilih tanggal untuk membuka pembahasan atau mengunduh sertifikat.</p></div><button id="clearHistory" type="button" style="border-color:#d87575;color:#a33">🗑️ Hapus Semua</button></div>'+
- (entries.length?entries.map(([k,v])=>{
-  const review=v.latestReview||v.bestReview,score=Number(v.latest??v.best??0),correct=Number((review&&review.correct)??v.correct??0);
-  return '<article class="history-card"><div class="history-card-head"><div><b>'+dateLabel(k)+'</b><div class="small">'+correct+'/15 jawaban benar</div></div><div class="history-score">'+score+'<small>/100</small></div></div><div class="history-actions">'+
-   '<button type="button" class="history-review" data-review-key="'+k+'" '+(review?'':'disabled')+'>📖 Pembahasan</button>'+
-   '<button type="button" class="primary history-certificate" data-cert-key="'+k+'">📜 Download Sertifikat</button>'+
-  '</div></article>';
- }).join(''):'<p class="small">Belum ada riwayat pengerjaan. Selesaikan quiz untuk melihat hasil di sini.</p>');
- $('clearHistory').onclick=clearHistory;
- h.querySelectorAll('.history-review').forEach(button=>button.onclick=()=>{
-  const item=getResults()[button.dataset.reviewKey],record=item&&(item.latestReview||item.bestReview);
-  if(record)showReview(record);
-  else alert('Pembahasan tidak tersimpan untuk pengerjaan lama ini. Pengerjaan baru akan menyimpan pembahasan lengkap.');
- });
- h.querySelectorAll('.history-certificate').forEach(button=>button.onclick=()=>{
-  const dateKey=button.dataset.certKey,item=getResults()[dateKey],record=item&&(item.latestReview||item.bestReview)||{score:Number((item&&item.latest)??(item&&item.best)??0),correct:Number(item&&item.correct||0)};
-  if(item)downloadCertificate(record,dateKey);
+ h.innerHTML='';
+ const head=document.createElement('div');head.className='history-heading';
+ const intro=document.createElement('div');
+ const title=document.createElement('h3');title.textContent='Riwayat Belajar';title.style.margin='10px 0 2px';
+ const desc=document.createElement('p');desc.className='small';desc.textContent='Pilih tanggal untuk melihat pembahasan atau mengunduh sertifikat.';
+ intro.append(title,desc);
+ const clear=document.createElement('button');clear.id='clearHistory';clear.type='button';clear.textContent='🗑️ Hapus Semua';clear.style.cssText='border-color:#d87575;color:#a33';
+ head.append(intro,clear);h.append(head);clear.onclick=clearHistory;
+ if(!entries.length){const empty=document.createElement('p');empty.className='small';empty.textContent='Belum ada riwayat pengerjaan. Selesaikan quiz untuk melihat hasil di sini.';h.append(empty);return}
+ entries.forEach(([dateKey,value])=>{
+  const review=value.latestReview||value.bestReview||null;
+  const dateParts=dateKey.split('-').map(Number),date=new Date(dateParts[0],dateParts[1]-1,dateParts[2]);
+  const card=document.createElement('article');card.className='history-card';
+  const top=document.createElement('div');top.className='history-card-head';
+  const details=document.createElement('div'),dateText=document.createElement('b'),summary=document.createElement('div');
+  dateText.textContent=date.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  summary.className='small';summary.textContent=String(Number((review&&review.correct)??value.correct??0))+'/15 jawaban benar';
+  details.append(dateText,summary);
+  const score=document.createElement('div');score.className='history-score';score.textContent=String(Number(value.latest??value.best??0));
+  const denominator=document.createElement('small');denominator.textContent='/100';score.append(denominator);
+  top.append(details,score);
+  const actions=document.createElement('div');actions.className='history-actions';
+  const reviewButton=document.createElement('button');reviewButton.type='button';reviewButton.className='history-review';reviewButton.textContent='📖 Pembahasan';
+  reviewButton.disabled=!review;
+  reviewButton.addEventListener('click',()=>{if(review)showReview(review);});
+  const certificateButton=document.createElement('button');certificateButton.type='button';certificateButton.className='primary history-certificate';certificateButton.textContent='📜 Download Sertifikat';
+  certificateButton.addEventListener('click',()=>downloadCertificate(review||{score:Number(value.latest??value.best??0),correct:Number(value.correct||0)},dateKey));
+  actions.append(reviewButton,certificateButton);card.append(top,actions);h.append(card);
  });
 }
 async function clearHistory(){
