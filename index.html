@@ -176,7 +176,7 @@ function updateDashboard(){let vals=Object.values(getResults()),scores=vals.map(
 function toggleHistory(){let h=$('history');h.hidden=!h.hidden;if(!h.hidden){renderHistory()}}
 function renderHistory(){
  const h=$('history'),r=getResults();
- const entries=Object.entries(r).filter(([k,v])=>k!=="_state"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(k)&&v&&typeof v==="object"&&v.done)
+ const entries=Object.entries(r).filter(([k,v])=>k!=="_state"&&/^\d{4}-\d{2}-\d{2}$/.test(k)&&v&&typeof v==="object"&&v.done)
   .sort((a,b)=>b[0].localeCompare(a[0]));
  const dateLabel=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
  h.innerHTML='<div class="dashrow"><div><h3 style="margin:10px 0 2px">Riwayat Belajar</h3><p class="small">Pilih tanggal untuk membuka pembahasan atau mengunduh sertifikat.</p></div><button id="clearHistory" type="button" style="border-color:#d87575;color:#a33">🗑️ Hapus Semua</button></div>'+
