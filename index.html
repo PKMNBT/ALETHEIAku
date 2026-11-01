@@ -194,7 +194,7 @@ function renderHistory(){
   else alert('Pembahasan tidak tersimpan untuk pengerjaan lama ini. Pengerjaan baru akan menyimpan pembahasan lengkap.');
  });
  h.querySelectorAll('.history-certificate').forEach(button=>button.onclick=()=>{
-  const dateKey=button.dataset.certKey,item=getResults()[dateKey],record=item&&(item.latestReview||item.bestReview)||{score:Number(item&&item.latest??item&&item.best??0),correct:Number(item&&item.correct||0)};
+  const dateKey=button.dataset.certKey,item=getResults()[dateKey],record=item&&(item.latestReview||item.bestReview)||{score:Number((item&&item.latest)??(item&&item.best)??0),correct:Number(item&&item.correct||0)};
   if(item)downloadCertificate(record,dateKey);
  });
 }
